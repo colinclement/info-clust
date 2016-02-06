@@ -1,5 +1,5 @@
 """
-clustering.py
+infoClustering.py
     
     This is a script written to implement 'Information based clustering'
     by Noam Slonim, Gurinder Singh Atwal, Gasper Tkacik, and Bill Bialek.
@@ -13,7 +13,7 @@ clustering.py
     author: Colin Clement
     date: 06/13/14
 
-    ALSO CONTAINS: Hard clustering from agglomerative clustering with Bialek's
+    ALSO CONTAINS: Hard clustering from agglomerative clustering with 
     rate-distortion condition for optimizing choice of number of clusters.
 """
 
@@ -43,18 +43,14 @@ def cij_to_sij(c_ij):
     return s_ij
  
 
-#==============================
-#   Bialek Clustering 
-#==============================
-
-class BialekClustering(object):
+class InformationClustering(object):
     """Implementation of Information-based Clustering"""
-    def __init__(self, c_ij, N_c, T, eps = 1E-6,
+    def __init__(self, s_ij, N_c, T, eps = 1E-6,
                  maxiter = None, iprint = 0, **kwargs):
         """
         input:
             (required)
-            c_ij : pairwise correlation matrix of shape (N, N)
+            s_ij : pairwise similarity matrix of shape (N, N)
             N_c : (int) number of clusters to consider
             T : (pos. float) parameter. 
             (optional)
@@ -71,8 +67,8 @@ class BialekClustering(object):
                         default is 'gpu' if you have cuClust compiled
 
         """
-        self.s_ij = self._cij_to_sij(c_ij)
-        self.N, self.N_c = c_ij.shape[0], N_c
+        self.s_ij = s_ij 
+        self.N, self.N_c = s_ij.shape[0], N_c
         self.rng = np.random.RandomState()
         self.T = T
         self.eps = eps
@@ -117,7 +113,7 @@ class BialekClustering(object):
 
     def optimize(self, T = None, P = None):
         """
-        Performs Bialek information-based clustering. (see ref. above)
+        Performs information-based clustering. (see ref. above)
             T : parameter (in F = <S> - T I)
         output:
             P(C | i) : probability array of shape (N_c, N)
