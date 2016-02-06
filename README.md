@@ -11,3 +11,5 @@ Usage
 
 More later...
 
+Paper describing algorithm:
+Slonim, Noam, et al. "Information-based clustering." Proceedings of the National Academy of Sciences of the United States of America 102.51 (2005): 18297-18302.
