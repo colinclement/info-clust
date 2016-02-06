@@ -1,5 +1,5 @@
 """
-bialekClustering.py
+clustering.py
     
     This is a script written to implement 'Information based clustering'
     by Noam Slonim, Gurinder Singh Atwal, Gasper Tkacik, and Bill Bialek.
@@ -24,13 +24,24 @@ from scipy.stats import rv_discrete
 from itertools import chain
 from scipy.misc import logsumexp
 
-import sgc.clusterUtilities as clu
 try:
-    from sgc.cuClust._cuClust import optimizeP #CUDA
+    from cuClust._cuClust import optimizeP #CUDA
     hascudaclust = True
 except ImportError:
     hascudaclust = False
 
+
+def cij_to_sij(c_ij):
+    """
+    Symmetrizes and takes the absolute value of c_ij
+    spin-spin correlation matrix.
+    input: correlation matrix (N,N)
+    output: symmetrized, diagonal-rounding removed
+    """
+    s_ij = np.abs((c_ij + c_ij.T)/2.)
+    s_ij[np.diag_indices(s_ij.shape[0])] = 1.0
+    return s_ij
+ 
 
 #==============================
 #   Bialek Clustering 
@@ -45,8 +56,7 @@ class BialekClustering(object):
             (required)
             c_ij : pairwise correlation matrix of shape (N, N)
             N_c : (int) number of clusters to consider
-            T : (pos. float) parameter. Default is random in (0,1]
-                {8: 0.03, 16, 0.012} seem effective for size L
+            T : (pos. float) parameter. 
             (optional)
             eps : (float) tolerance for convergence (default 1E-12)
             seed : (int) seed for random initial condition
@@ -57,7 +67,9 @@ class BialekClustering(object):
                 P : initial probalities float(N_c, N)
                 N_avg : Number of initial conditions to average over in
                         self.average_over_initial (default 10)
-        
+                target: string of either 'cpu' or 'gpu'
+                        default is 'gpu' if you have cuClust compiled
+
         """
         self.s_ij = self._cij_to_sij(c_ij)
         self.N, self.N_c = c_ij.shape[0], N_c
@@ -78,17 +90,7 @@ class BialekClustering(object):
         self.P = self.optimize()
         self.clust = self.assignClusterMaxProb(self.P)
 
-    def _cij_to_sij(self, c_ij):
-        """
-        Symmetrizes and takes the absolute value of c_ij
-        spin-spin correlation matrix.
-        input: correlation matrix (N,N)
-        output: symmetrized, diagonal-rounding removed
-        """
-        s_ij = np.abs((c_ij + c_ij.T)/2.)
-        s_ij[np.diag_indices(s_ij.shape[0])] = 1.0
-        return s_ij
-    
+   
     ##------------------
     # Objective function
     ##------------------
@@ -222,17 +224,7 @@ class BialekClustering(object):
                 if c == nc:
                     clust[nc] += [i]
         clust = [c for c in clust if c]
-        #Split spatially disjoint clusters
-        if np.sqrt(self.N)%1. == 0: #square two dimensional
-            clust = self.splitClustersSpatially(clust) 
         return clust
-
-    def splitClustersSpatially(self, clust):
-        split = []
-        L = int(np.sqrt(self.N))
-        for c in clust:
-            split += clu.spatialSplit(c, L)
-        return split 
 
     def sampleClusterProb(self):
         """
